@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>todos - Plan your day!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Work+Sans:200" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">  
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/style.css">
+
+    <script>
+        $(document).ready(function(){
+     
+
+            // Generates html elements for list items
+            function generateHtml(data){
+                var id = data.id;
+                var caption = data.caption;
+                var check = data.is_completed;
+                var box;
+
+                if(check == 1){
+                    box = '<input checked type="checkbox" class="checkbox" id="' + id + '" onclick="markUndone(this)">';
+                }
+                else{
+                    box = '<input type="checkbox" class="checkbox" id="' + id + '" onclick="markDone(this)">';
+                }
+
+                var item = '<li class="list-item" id="' + id + '">' + 
+                                '<div class="left-sub">' + 
+                                    box +
+                                    '<div class="item-desc">' + 
+                                        '<form id="'+ id + '" method="POST" onsubmit="editform(event,this)">' +
+                                            '<input type="text" name="caption" value="' + caption + '" class="item-desc-input" id="task' + id + '">' +
+                                            '<input type="submit" style="display:none">' +
+                                        '</form>' + 
+                                    '</div>' + 
+                                '</div>' + 
+                                '<span class="del_btn" id="' + id + '" onclick="delTask(this)">' +
+                                    '<i class="fas fa-times"></i>'
+                                '</span>' +
+                            '</li>';
+
+                $("#task_list").append(item); 
+                                
+            }       
+
+            var table = new Array();
+
+            // Appends the whole table to the list
+            function appendAllData(){
+                var i = 0;
+                $.each(table[i], function(key, val){
+                    generateHtml(val)
+                    i++;      
+                })
+                
+            }
+
+            
+            // Gets the whole table from the DB
+            function getAllData(){
+                $.get(
+                    "http://todo_api.local.geekydev.com/getData.php", 
+                    function(data, status){
+                        table.push((data));
+                        appendAllData()
+                    },"json"      
+                );
+            }
+            getAllData();
+
+            // Append task list after addtion of task
+            function appendList(val){
+                generateHtml(val);  
+                 
+            }
+
+            
+
+            // Adding data to the DB
+            $('#add_form').submit(function(e){
+
+                e.preventDefault();
+                $.post(
+                    "http://todo_api.local.geekydev.com/addItem.php",
+                    $('#add_form').serialize(),
+                    function(data, status){
+                        $('.input-field').val(""); 
+                        appendList(data);      
+                    },"json"
+                )
+
+            })
+
+            
+
+        });
+    </script>
+    
+</head>
+<body>
+    
+    <div class="wrapper">
+
+        <div class="header">
+            todos
+        </div>
+
+        <div class="card-view">
+            <div class="input-area">
+
+                <form method="POST" id="add_form">
+                    <input type="text" name="taskItem" placeholder="What needs to be done?" class="input-field" required>
+                    <input type="submit" style="display:none;">
+                </form>
+
+            </div>
+            
+            <div class="list">
+
+                <ul id="task_list">
+
+                    
+                </ul>
+
+            </div>
+
+            <div class="details">
+                
+                <div class="total-items">
+                    Total tasks: <span id="total"> </span>
+                </div>
+
+                <div class="done-items">
+                    Completed: <span id="complete"> </span>
+                </div>
+
+                <div class="undone-items">
+                    Incompleted: <span id="incomplete"> </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        
+        // Mark task as done
+        function markDone(box){
+            var id = $(box).attr('id')   
+            $.post(
+                "http://todo_api.local.geekydev.com/markDone.php?id="+id,
+                function(data){       
+                }
+            )            
+        }  
+
+        // Mark task as undone
+        function markUndone(box){
+            var id = $(box).attr('id')
+            $.post(
+                "http://todo_api.local.geekydev.com/markUndone.php?id="+id,
+                function(data){
+
+                }
+            )
+            
+        }
+
+        // Remove from taskList
+        function removeTask(box){
+            var parent = box.parentElement;
+            // console.log(parent)
+            $(parent).remove();
+        }
+
+        // Delete task
+        function delTask(box){
+            var id = $(box).attr('id')
+            
+            if(confirm("Do you really want to delete this task?"))
+            {
+                $.post(
+                    "http://todo_api.local.geekydev.com/delete.php?id="+id,
+                    function(data){
+                        removeTask(box)
+                    }
+                )
+            }
+            
+        }
+
+        // Update a task
+        function editform(event,box) {
+            var id = "task" + box.id;
+            document.getElementById(id).blur();
+            event.preventDefault();
+            $.post(
+                "http://todo_api.local.geekydev.com/update.php?id="+box.id,
+                $(box).serialize(),
+                function(data, status){
+                    $(id).val(data)
+                    alert(status)   
+                },"json"
+            )
+        }
+    
+    </script>
+    
+</body>
+</html>
+
